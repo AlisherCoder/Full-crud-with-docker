@@ -6,7 +6,7 @@ services:
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: 12345
-      POSTGRES_DB: mydb
+      POSTGRES_DB: mydata
     ports:
       - '5432:5432'
     volumes:
@@ -21,7 +21,7 @@ services:
     ports:
       - '3000:3000'
     environment:
-      DATABASE_URL: 'postgresql://postgres:12345@postgres:5432/mydb'
+      DATABASE_URL: 'postgresql://postgres:12345@postgres:5432/mydata'
     command: ['npm', 'run', 'start:migrate:prod']
 
 volumes:
