@@ -19,5 +19,5 @@ export class UpdateAuthDto {
   @IsArray()
   @ArrayNotEmpty()
   @IsString({ each: true })
-  image?: string[];
+  images?: string[];
 }

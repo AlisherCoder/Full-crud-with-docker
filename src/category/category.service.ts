@@ -40,7 +40,7 @@ export class CategoryService {
       });
 
       if (!data.length) {
-        throw new NotFoundException('Not found data');
+        return new NotFoundException('Not found data');
       }
       return { data };
     } catch (error) {
@@ -55,7 +55,7 @@ export class CategoryService {
         include: { Product: true },
       });
       if (!data) {
-        throw new NotFoundException('Not found data');
+        return new NotFoundException('Not found data');
       }
       return { data };
     } catch (error) {
@@ -70,7 +70,7 @@ export class CategoryService {
         data: updateCategoryDto,
       });
       if (!data) {
-        throw new NotFoundException('Not found data');
+        return new NotFoundException('Not found data');
       }
       return { data };
     } catch (error) {
@@ -82,7 +82,7 @@ export class CategoryService {
     try {
       let data = await this.prisma.category.delete({ where: { id } });
       if (!data) {
-        throw new NotFoundException('Not found data');
+        return new NotFoundException('Not found data');
       }
       return { data };
     } catch (error) {

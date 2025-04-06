@@ -6,7 +6,9 @@ import {
 } from '@nestjs/common';
 import {
   CreateAuthDto,
+  CreateSuperAdminDto,
   LoginDto,
+  ResetPasswordDto,
   SendOtpDto,
   VerifyDto,
 } from './dto/create-auth.dto';
@@ -37,10 +39,10 @@ export class AuthService {
     try {
       let user = await this.prisma.user.findUnique({ where: { email } });
       if (user) {
-        throw new ConflictException('User already exists');
+        return new ConflictException('User already exists');
       }
 
-      let hashpass = bcrypt.hashSync(password, 10);
+      let hashpass = await bcrypt.hash(password, 10);
       await this.prisma.user.create({
         data: { ...createAuthDto, password: hashpass },
       });
@@ -65,16 +67,16 @@ export class AuthService {
     try {
       let user = await this.prisma.user.findUnique({ where: { email } });
       if (!user) {
-        throw new UnauthorizedException('Unauthorized');
+        return new UnauthorizedException('Unauthorized');
       }
 
       let match = bcrypt.compareSync(password, user.password);
       if (!match) {
-        throw new BadRequestException('Email or password is wrong');
+        return new BadRequestException('Email or password is wrong');
       }
 
       if (user.status != 'ACTIVE') {
-        throw new BadRequestException(
+        return new BadRequestException(
           'Your account is not active, please activate your account',
         );
       }
@@ -113,7 +115,7 @@ export class AuthService {
     try {
       let isValid = totp.check(otp, this.otpkey + email);
       if (!isValid) {
-        throw new BadRequestException('One-time-password or email is wrong');
+        return new BadRequestException('One-time-password or email is wrong');
       }
 
       let user = await this.prisma.user.update({
@@ -128,7 +130,72 @@ export class AuthService {
   }
 
   async sendOTP(sendOtphDto: SendOtpDto) {
+    let { email } = sendOtphDto;
     try {
+      let user = await this.prisma.user.findUnique({ where: { email } });
+      if (!user) {
+        return new UnauthorizedException('Unauthorized');
+      }
+
+      let otp = totp.generate(this.otpkey + email);
+      await this.mailService.sendMail(
+        email,
+        'One-time-password',
+        `OTP code - ${otp}`,
+      );
+
+      return { data: 'OTP sent to your email', otp };
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
+  }
+
+  async resetPassword(resetPasswordDto: ResetPasswordDto) {
+    let { email, otp, newPassword } = resetPasswordDto;
+    try {
+      let isValid = totp.check(otp, this.otpkey + email);
+      if (!isValid) {
+        return new BadRequestException('Otp or email is wrong');
+      }
+
+      let hashpass = await bcrypt.hash(newPassword, 10);
+      await this.prisma.user.update({
+        where: { email },
+        data: { password: hashpass },
+      });
+
+      return { data: 'Your password updated successfully' };
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
+  }
+
+  async refreshToken(req: Request) {
+    let user = req['user'];
+    try {
+      let accessToken = this.genAccessToken({ id: user.id, role: user.role });
+      return { accessToken };
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
+  }
+
+  async createSuperAdmin(createSuperAdminDto: CreateSuperAdminDto) {
+    try {
+      let user = await this.prisma.user.findUnique({
+        where: { id: createSuperAdminDto.userId },
+      });
+
+      if (!user) {
+        return new BadRequestException('User not found');
+      }
+
+      let data = await this.prisma.user.update({
+        where: { id: createSuperAdminDto.userId },
+        data: { role: 'SUPERADMIN' },
+      });
+
+      return { data };
     } catch (error) {
       throw new BadRequestException(error.message);
     }
@@ -137,7 +204,7 @@ export class AuthService {
   genAccessToken(payload: object) {
     return this.jwtService.sign(payload, {
       secret: this.acckey,
-      expiresIn: '12',
+      expiresIn: '12h',
     });
   }
 

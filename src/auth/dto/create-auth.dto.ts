@@ -3,11 +3,14 @@ import {
   ArrayNotEmpty,
   IsArray,
   IsEmail,
+  IsInt,
   IsNotEmpty,
+  IsNumber,
   IsOptional,
   IsString,
   Matches,
   MaxLength,
+  Min,
   MinLength,
 } from 'class-validator';
 
@@ -22,7 +25,7 @@ export class CreateAuthDto {
   @IsArray()
   @ArrayNotEmpty()
   @IsString({ each: true })
-  image?: string[];
+  images?: string[];
 
   @ApiProperty({ example: 'alex@gmail.com' })
   @IsEmail()
@@ -95,7 +98,7 @@ export class ResetPasswordDto {
   })
   @MinLength(4)
   @MaxLength(32)
-  password: string;
+  newPassword: string;
 }
 
 export class RefreshTokenDto {
@@ -103,4 +106,11 @@ export class RefreshTokenDto {
   @IsString()
   @IsNotEmpty()
   refreshToken: string;
+}
+
+export class CreateSuperAdminDto {
+  @ApiProperty({ example: 2 })
+  @IsInt()
+  @Min(0)
+  userId: number;
 }
